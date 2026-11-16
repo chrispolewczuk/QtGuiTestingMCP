@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify release
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  package:
+    name: Package ${{ matrix.platform }}
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            qt_arch: win64_msvc2022_64
+          - platform: linux
+            os: ubuntu-latest
+            qt_arch: linux_gcc_64
+          - platform: macos
+            os: macos-latest
+            qt_arch: clang_64
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: desktop
+          arch: ${{ matrix.qt_arch }}
+          install-deps: true
+
+      - name: Install Linux deployment tool
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install --yes patchelf
+
+      - name: Configure release package
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=OFF
+          -DQT_GUI_TESTING_MCP_ENABLE_BRIDGE=ON
+          -DCMAKE_INSTALL_PREFIX=package
+
+      - name: Build release package
+        run: cmake --build build --parallel
+
+      - name: Install deployed application
+        run: cmake --install build
+
+      - name: Assemble archive
+        shell: bash
+        run: >-
+          python scripts/package_release.py
+          --package-dir package
+          --platform "${{ matrix.platform }}"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: QtGuiTestingMCP-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v6
+
+      - name: Verify tag matches VERSION
+        shell: bash
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          tag_version="${GITHUB_REF_NAME#v}"
+          test "${version}" = "${tag_version}"
+
+      - name: Download platform archives
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List release assets
+        shell: bash
+        run: ls -lah dist
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "QtGuiTestingMCP ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            dist/*

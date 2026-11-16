@@ -1,0 +1,14 @@
+# CMake and IDE build trees
+/build/
+/dist/
+/cmake-build-*/
+
+# Python bytecode and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Qt/IDE generated user state
+*.user
+.idea/
