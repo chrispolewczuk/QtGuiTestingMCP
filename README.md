@@ -76,19 +76,20 @@ does not launch or terminate the application on behalf of the MCP server.
 The project version is maintained in [`VERSION`](VERSION) and follows
 Semantic Versioning.
 
-On Windows, use a Visual Studio Developer PowerShell or an equivalent
-environment so the MSVC and Windows SDK include/library paths are available.
+On Windows, use the Visual Studio 2022 generator so the MSVC compiler and
+Windows SDK are selected explicitly. Ninja is also supported from a Visual
+Studio Developer PowerShell with the MSVC environment initialized.
 
 ## Build
 
 Replace the Qt path with the kit installed on your machine:
 
 ```powershell
-cmake -S . -B build -G Ninja `
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
   -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x.x/msvc2022_64 `
   -DCMAKE_BUILD_TYPE=Debug `
   -DBUILD_TESTING=ON
-cmake --build build
+cmake --build build --config Debug
 ```
 
 The bridge is enabled by the project-owned `QT_GUI_TESTING_MCP_ENABLED` macro in

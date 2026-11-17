@@ -55,6 +55,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes patchelf
 
       - name: Configure release package
+        if: runner.os == 'Windows'
+        run: >-
+          cmake -S . -B build
+          -G "Visual Studio 17 2022"
+          -A x64
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=OFF
+          -DQT_GUI_TESTING_MCP_ENABLE_BRIDGE=ON
+          -DCMAKE_INSTALL_PREFIX=package
+
+      - name: Configure release package (Unix)
+        if: runner.os != 'Windows'
         run: >-
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
@@ -63,10 +75,10 @@ jobs:
           -DCMAKE_INSTALL_PREFIX=package
 
       - name: Build release package
-        run: cmake --build build --parallel
+        run: cmake --build build --config Release --parallel
 
       - name: Install deployed application
-        run: cmake --install build
+        run: cmake --install build --config Release
 
       - name: Assemble archive
         shell: bash

@@ -27,10 +27,10 @@ Configure a Debug build with Qt 6 and enable the offscreen platform when
 running the application:
 
 ```powershell
-cmake -S . -B build -G Ninja `
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
   -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x.x/msvc2022_64 `
   -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
+cmake --build build --config Debug
 $env:QT_QPA_PLATFORM = "offscreen"
 ./build/qtgui-testing-mcp.exe
 ```
