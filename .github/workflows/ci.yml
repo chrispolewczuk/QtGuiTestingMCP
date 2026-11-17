@@ -20,7 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
+          # Pin this runner because windows-latest now uses the VS 2026 image.
+          # The Qt kit and generator below require Visual Studio 2022.
+          - os: windows-2022
             qt_arch: win64_msvc2022_64
           - os: ubuntu-latest
             qt_arch: linux_gcc_64
