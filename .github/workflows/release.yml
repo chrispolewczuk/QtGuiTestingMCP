@@ -50,6 +50,17 @@ jobs:
           arch: ${{ matrix.qt_arch }}
           install-deps: true
 
+      - name: Verify Windows Qt toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Qt root: $env:QT_ROOT_DIR"
+          $qtConfig = Join-Path $env:QT_ROOT_DIR 'lib/cmake/Qt6/Qt6Config.cmake'
+          if (-not (Test-Path -LiteralPath $qtConfig)) {
+              throw "Qt6Config.cmake was not found at $qtConfig"
+          }
+          cmake --version
+
       - name: Install Linux deployment tool
         if: matrix.platform == 'linux'
         run: sudo apt-get update && sudo apt-get install --yes patchelf
@@ -60,6 +71,7 @@ jobs:
           cmake -S . -B build
           -G "Visual Studio 17 2022"
           -A x64
+          -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
           -DCMAKE_BUILD_TYPE=Release
           -DBUILD_TESTING=OFF
           -DQT_GUI_TESTING_MCP_ENABLE_BRIDGE=ON
@@ -69,6 +81,7 @@ jobs:
         if: runner.os != 'Windows'
         run: >-
           cmake -S . -B build -G Ninja
+          -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
           -DCMAKE_BUILD_TYPE=Release
           -DBUILD_TESTING=OFF
           -DQT_GUI_TESTING_MCP_ENABLE_BRIDGE=ON
